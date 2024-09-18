@@ -94,4 +94,4 @@ For questions or suggestions, please open an issue on the GitHub repository.
 
 ## Acknowledgements
 
-This project was inspired by and builds upon various research in the field of calcium signaling. Special thanks to [list any specific acknowledgements].
+This project was inspired by and builds upon various research in the field of calcium signaling.
