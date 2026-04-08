@@ -14,12 +14,14 @@ class MainWindow(QMainWindow):
     def __init__(self, calcium_model):
         super().__init__()
         self.calcium_model = calcium_model
+        self._base_dir = os.path.dirname(os.path.abspath(__file__))
         self.initUI()
 
+        configs_dir = os.path.join(self._base_dir, "configs")
         self.cell_states = {
-            "Default": "default_state.json",
-            "High Calcium": "high_calcium_state.json",
-            "Low Calcium": "low_calcium_state.json"
+            "Default": os.path.join(configs_dir, "default_state.json"),
+            "High Calcium": os.path.join(configs_dir, "high_calcium_state.json"),
+            "Low Calcium": os.path.join(configs_dir, "low_calcium_state.json"),
         }
         self.create_default_states()
         self.create_cell_state_menu()
@@ -521,6 +523,7 @@ class MainWindow(QMainWindow):
 
     def create_default_states(self):
         for state_name, filename in self.cell_states.items():
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
             if not os.path.exists(filename):
                 # Create a default state file
                 if state_name == "Default":
