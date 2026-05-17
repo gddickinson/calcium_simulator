@@ -138,3 +138,7 @@ python main.py
 ## License
 
 MIT License
+
+
+---
+*Built with AI assistance from [Claude (Anthropic)](https://claude.com/).*
