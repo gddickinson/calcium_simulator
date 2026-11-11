@@ -3,7 +3,7 @@ from scipy.ndimage import binary_dilation
 from skimage.draw import line
 import json
 
-from model_numerics import LAPLACIAN_KERNEL, diffusion_rate, laplacian9, substeps
+from model_numerics import LAPLACIAN_KERNEL, diffusion_rate, equilibrium_calcium, laplacian9, substeps
 
 class CalciumModel:
     def __init__(self, grid_size=200, dx=0.1, dt=0.001,
@@ -58,17 +58,11 @@ class CalciumModel:
         self.create_cell_structure()
 
     def calculate_equilibrium_calcium(self):
-        # Solve for equilibrium calcium concentration
-        # This is a simplified calculation and might need adjustment
-        a = self.serca_rate
-        b = self.serca_k**2 - self.leak_rate / self.serca_rate
-        c = -self.leak_rate * self.serca_k**2 / self.serca_rate
-
-        # Quadratic formula
-        eq_calcium = (-b + np.sqrt(b**2 - 4*a*c)) / (2*a)
-        return eq_calcium
+        """Resting cytosolic [Ca2+] (uM): SERCA uptake balances the ER leak at the initial ER [Ca2+]."""
+        return equilibrium_calcium(self.serca_rate, self.serca_k, self.leak_rate, self.er_calcium_init)
 
     def reset(self):
+        self.eq_calcium = self.calculate_equilibrium_calcium()
         self.calcium = np.full((self.grid_size, self.grid_size), self.eq_calcium, dtype=np.float64)
         self.er_calcium = np.full((self.grid_size, self.grid_size), self.er_calcium_init, dtype=np.float64)
         self.mito_calcium = np.full((self.grid_size, self.grid_size), self.mito_calcium_init, dtype=np.float64)

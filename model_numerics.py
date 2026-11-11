@@ -33,3 +33,22 @@ def substeps(dt, rate):
     first-order loss rate on a grid point, the centre weight 1 - h * rate stays >= 0: the update is stable
     and keeps concentrations non-negative."""
     return max(1, math.ceil(dt * rate))
+
+
+def equilibrium_calcium(serca_rate, serca_k, leak_rate, er_calcium):
+    """Resting cytosolic [Ca2+] (uM) where SERCA uptake balances the ER leak:
+    serca_rate * c^2 / (c^2 + serca_k^2) = leak_rate * (er_calcium - c), solved by bisection on [0, er_calcium]
+    (the left side rises and the right side falls with c, so the root is unique)."""
+    if er_calcium <= 0 or leak_rate <= 0:
+        return 0.0
+    lo, hi = 0.0, float(er_calcium)
+    k2 = serca_k * serca_k
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if mid == lo or mid == hi:
+            break
+        if serca_rate * mid * mid / (mid * mid + k2) - leak_rate * (er_calcium - mid) > 0:
+            hi = mid
+        else:
+            lo = mid
+    return 0.5 * (lo + hi)

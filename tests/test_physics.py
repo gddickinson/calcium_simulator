@@ -68,3 +68,23 @@ def test_local_ip3_spreads_without_overshoot():
         m.step()
         assert m.ip3_conc.max() <= 1.0 + 1e-12
     assert m.ip3_conc.min() >= 0.0 and m.ip3_conc[0, 0] > 0.0
+
+
+def test_resting_calcium_balances_serca_and_leak():
+    """The initial cytosolic [Ca2+] is the pump-leak steady state: SERCA uptake equals ER leak at ER [Ca2+]_0."""
+    m = CalciumModel(grid_size=30)
+    c = m.eq_calcium
+    serca = m.serca_rate * c ** 2 / (c ** 2 + m.serca_k ** 2)
+    leak = m.leak_rate * (m.er_calcium_init - c)
+    assert abs(serca - leak) < 1e-12 * leak
+    assert 0.05 < c < 0.2  # ~115 nM for the defaults: a physiological resting level
+
+
+def test_loading_a_state_updates_resting_calcium():
+    m = CalciumModel(grid_size=30)
+    low = m.eq_calcium
+    m.load_parameters(os.path.join(CONFIGS, "high_calcium_state.json"))
+    m.grid_size = 30
+    m.reset()
+    assert m.er_calcium_init == 1000 and m.eq_calcium > low
+    assert np.allclose(m.calcium, m.eq_calcium)
