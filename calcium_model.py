@@ -70,6 +70,7 @@ class CalciumModel:
         self.ip3r_open = np.zeros((self.grid_size, self.grid_size), dtype=np.int32)
         self.ip3r_clusters = np.zeros((self.grid_size, self.grid_size), dtype=np.int32)
         self.ip3_conc = np.zeros((self.grid_size, self.grid_size), dtype=np.float64)
+        self.uncaging = []  # IP3 uncaging events still delivering: {"mask", "rate" uM/s, "remaining" s}
         self.buffer_bound = np.full((self.grid_size, self.grid_size),
                                     self.buffer_total * self.eq_calcium / (self.eq_calcium + self.buffer_kd))
 
@@ -130,7 +131,11 @@ class CalciumModel:
         for _ in range(n):
             self._calcium_substep(self.dt / n)
 
-        # IP3: diffusion and degradation, sub-stepped for stability (D_ip3 is ten times D_ca)
+        # IP3 uncaging still in progress, then diffusion and degradation, sub-stepped for stability (D_ip3 is ten times D_ca)
+        for event in list(self.uncaging):
+            self._apply_uncaging(event)
+            if event["remaining"] <= 0:
+                self.uncaging.remove(event)
         self._ip3_update()
 
         # Ensure non-negative concentrations and prevent overflow
@@ -183,18 +188,30 @@ class CalciumModel:
         self.ip3_conc = u
 
     def add_ip3_global(self, amount, duration):
-        """Simulate global uncaging of IP3"""
-        rate = amount / duration
-        self.ip3_conc += rate * self.dt
-        self.ip3_conc = np.clip(self.ip3_conc, 0, 10)
+        """Uncage IP3 everywhere: `amount` uM delivered at a constant rate over `duration` s (the first dt now,
+        the rest during the following steps)."""
+        self._start_uncaging(None, amount, duration)
 
     def add_ip3_local(self, x, y, radius, amount, duration):
-        """Simulate local uncaging of IP3"""
+        """Uncage IP3 in a disc of `radius` grid points around column x, row y: `amount` uM over `duration` s."""
         xx, yy = np.meshgrid(np.arange(self.grid_size), np.arange(self.grid_size))
         mask = ((xx - x)**2 + (yy - y)**2 <= radius**2)
-        rate = amount / duration
-        self.ip3_conc[mask] += rate * self.dt
+        self._start_uncaging(mask, amount, duration)
+
+    def _start_uncaging(self, mask, amount, duration):
+        event = {"mask": mask, "rate": amount / duration, "remaining": duration}
+        self._apply_uncaging(event)
+        if event["remaining"] > 0:
+            self.uncaging.append(event)
+
+    def _apply_uncaging(self, event):
+        amt = event["rate"] * min(self.dt, event["remaining"])
+        if event["mask"] is None:
+            self.ip3_conc = self.ip3_conc + amt
+        else:
+            self.ip3_conc[event["mask"]] += amt
         self.ip3_conc = np.clip(self.ip3_conc, 0, 10)
+        event["remaining"] -= self.dt
 
     def set_buffer_conditions(self, total, kd, kon):
         self.buffer_total = total

@@ -108,3 +108,22 @@ def test_ip3r_gating_scales_with_time_step():
     fast, slow = openings(1e-3), openings(1e-6)
     assert fast > 10
     assert slow < 3, (fast, slow)
+
+
+def test_global_uncaging_delivers_amount_over_duration():
+    np.random.seed(0)
+    m = CalciumModel(grid_size=30, ip3_degradation_rate=0.0)
+    m.add_ip3_global(amount=0.5, duration=0.01)
+    for _ in range(20):
+        m.step()
+    np.testing.assert_allclose(m.ip3_conc, 0.5, rtol=1e-9)
+
+
+def test_local_uncaging_delivers_amount_over_duration():
+    np.random.seed(0)
+    m = CalciumModel(grid_size=40, D_ip3=0.0, ip3_degradation_rate=0.0)
+    m.add_ip3_local(x=20, y=10, radius=3, amount=0.8, duration=0.005)
+    for _ in range(10):
+        m.step()
+    assert abs(m.ip3_conc[10, 20] - 0.8) < 1e-9
+    assert m.ip3_conc[20, 10] == 0.0  # x is the column index, y the row index
