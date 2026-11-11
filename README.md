@@ -57,12 +57,12 @@ d[IP3]/dt       = D_IP3 * nabla^2[IP3] - J_degradation
 | IP3 diffusion coeff | D_IP3 | 200 um^2/s |
 | SERCA pump rate | V_SERCA | 0.4 uM/s |
 | SERCA half-max | K_SERCA | 0.2 uM |
-| ER leak rate | -- | 0.0002 s^-1 |
-| PMCA rate | -- | 0.1 uM/s |
-| MCU rate | -- | 0.05 uM/s |
+| ER leak rate | -- | 0.0002 s^-1 (times Ca_ER - Ca_cyt, on ER pixels) |
+| PMCA rate | -- | 0.1 s^-1 (times Ca_cyt, on the plasma-membrane edge pixels) |
+| MCU rate | -- | 0.05 s^-1 (times Ca_cyt - Ca_mito, on mitochondrial pixels) |
 | IP3 degradation rate | -- | 0.1 s^-1 |
-| IP3R cluster density | -- | 0.01 |
-| IP3R per cluster | -- | 10 |
+| IP3R cluster density | -- | 0.01 (fraction of ER pixels carrying a cluster) |
+| IP3R per cluster | -- | 10 (Poisson mean) |
 | IP3R open rate | -- | 10 s^-1 (max rate, scaled by the Ca2+/IP3 dependence) |
 | IP3R close rate | -- | 10000 s^-1 (max rate, scaled by c/(c + 0.3 uM)) |
 | Buffer total | -- | 100 uM |
@@ -71,14 +71,21 @@ d[IP3]/dt       = D_IP3 * nabla^2[IP3] - J_degradation
 | Initial ER [Ca2+] | -- | 500 uM |
 | Initial mito [Ca2+] | -- | 0.1 uM |
 
-The 2D diffusion uses a weighted Laplacian kernel:
+The 2D diffusion uses the isotropic 9-point Laplacian with zero-flux (mirror) boundaries:
 ```
-[[0.05, 0.2, 0.05],
- [0.2,  -1,  0.2 ],
- [0.05, 0.2, 0.05]]
+            [[1,   4, 1],
+(1/6 dx^2) * [4, -20, 4],
+             [1,   4, 1]]
 ```
 
-Equilibrium cytosolic calcium is computed analytically from the balance of SERCA uptake and ER leak at steady state.
+Each time step `dt` is split into as many forward-Euler sub-steps as needed to keep the explicit update stable and
+non-negative (diffusion plus buffer binding, release and pumps for Ca2+; diffusion plus degradation for IP3), so `dt`
+can be chosen for the IP3R gating without the diffusion blowing up. IP3R channels gate once per `dt` with probability
+rate x dt (at most one opening and one closing per cluster per step). IP3 uncaging delivers the requested amount (uM)
+at a constant rate over the requested duration (s).
+
+The resting cytosolic [Ca2+] is where SERCA uptake balances the ER leak at the initial ER [Ca2+]
+(`serca c^2/(c^2 + K^2) = leak (Ca_ER - c)`), about 0.115 uM for the defaults; the buffer starts in equilibrium with it.
 
 ## Project Structure
 
@@ -86,11 +93,12 @@ Equilibrium cytosolic calcium is computed analytically from the balance of SERCA
 calcium_simulator/
   main.py              # Entry point: creates CalciumModel and MainWindow, runs Qt event loop
   calcium_model.py     # CalciumModel class: reaction-diffusion solver, cell structure, IP3R gating
-  gui.py               # MainWindow class: tabbed visualization, parameter controls, overlays, menus
-  __init__.py          # Package init (re-exports from src subpackage)
-  default_state.json   # Default cell state parameters
-  high_calcium_state.json
-  low_calcium_state.json
+  model_numerics.py    # 9-point Laplacian, stable sub-step counts, resting-Ca2+ (SERCA = leak) solver
+  gui.py               # MainWindow class: tabbed visualization, overlays, menus
+  gui_docks.py         # Parameter docks (mixin used by MainWindow)
+  __init__.py          # Package docstring and version
+  configs/             # Cell states: default_state.json, high_calcium_state.json, low_calcium_state.json
+  tests/               # pytest: model, physics regression and GUI (offscreen) tests
 ```
 
 ### Key Classes
