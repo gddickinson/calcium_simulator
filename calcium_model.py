@@ -132,10 +132,9 @@ class CalciumModel:
             self._calcium_substep(self.dt / n)
 
         # IP3 uncaging still in progress, then diffusion and degradation, sub-stepped for stability (D_ip3 is ten times D_ca)
-        for event in list(self.uncaging):
+        for event in self.uncaging:
             self._apply_uncaging(event)
-            if event["remaining"] <= 0:
-                self.uncaging.remove(event)
+        self.uncaging = [e for e in self.uncaging if e["remaining"] > 0]
         self._ip3_update()
 
         # Ensure non-negative concentrations and prevent overflow

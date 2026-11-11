@@ -127,3 +127,15 @@ def test_local_uncaging_delivers_amount_over_duration():
         m.step()
     assert abs(m.ip3_conc[10, 20] - 0.8) < 1e-9
     assert m.ip3_conc[20, 10] == 0.0  # x is the column index, y the row index
+
+
+def test_overlapping_uncaging_events():
+    np.random.seed(0)
+    m = CalciumModel(grid_size=30, D_ip3=0.0, ip3_degradation_rate=0.0)
+    m.add_ip3_local(x=10, y=10, radius=2, amount=0.4, duration=0.002)
+    m.add_ip3_local(x=20, y=20, radius=2, amount=0.6, duration=0.005)
+    m.add_ip3_global(amount=0.1, duration=0.003)
+    for _ in range(8):
+        m.step()
+    assert not m.uncaging
+    assert abs(m.ip3_conc[10, 10] - 0.5) < 1e-9 and abs(m.ip3_conc[20, 20] - 0.7) < 1e-9
