@@ -63,8 +63,8 @@ d[IP3]/dt       = D_IP3 * nabla^2[IP3] - J_degradation
 | IP3 degradation rate | -- | 0.1 s^-1 |
 | IP3R cluster density | -- | 0.01 |
 | IP3R per cluster | -- | 10 |
-| IP3R open rate | -- | 0.01 s^-1 |
-| IP3R close rate | -- | 10 s^-1 |
+| IP3R open rate | -- | 10 s^-1 (max rate, scaled by the Ca2+/IP3 dependence) |
+| IP3R close rate | -- | 10000 s^-1 (max rate, scaled by c/(c + 0.3 uM)) |
 | Buffer total | -- | 100 uM |
 | Buffer Kd | -- | 0.5 uM |
 | Buffer k_on | -- | 100 uM^-1 s^-1 |

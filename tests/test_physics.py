@@ -88,3 +88,23 @@ def test_loading_a_state_updates_resting_calcium():
     m.reset()
     assert m.er_calcium_init == 1000 and m.eq_calcium > low
     assert np.allclose(m.calcium, m.eq_calcium)
+
+
+def test_ip3r_gating_scales_with_time_step():
+    """Opening/closing rates are per second: shrinking dt must shrink the number of openings per step."""
+    def openings(dt):
+        np.random.seed(3)
+        m = CalciumModel(dt=dt)
+        m.calcium[:] = 0.5
+        m.ip3_conc[:] = 1.0
+        total = 0
+        for _ in range(20):
+            m.ip3r_open[:] = 0
+            m.calcium[:] = 0.5
+            m.ip3_conc[:] = 1.0
+            m.step()
+            total += int(m.ip3r_open.sum())
+        return total
+    fast, slow = openings(1e-3), openings(1e-6)
+    assert fast > 10
+    assert slow < 3, (fast, slow)

@@ -8,7 +8,7 @@ from model_numerics import LAPLACIAN_KERNEL, diffusion_rate, equilibrium_calcium
 class CalciumModel:
     def __init__(self, grid_size=200, dx=0.1, dt=0.001,
                  ip3r_cluster_density=0.01, ip3r_per_cluster=10,
-                 ip3r_open_rate=0.01, ip3r_close_rate=10,
+                 ip3r_open_rate=10.0, ip3r_close_rate=10000.0,
                  D_ca=20, D_ip3=200, leak_rate=0.0002,
                  serca_rate=0.4, serca_k=0.2,
                  ip3_degradation_rate=0.1, pmca_rate=0.1, mcu_rate=0.05,
@@ -108,13 +108,19 @@ class CalciumModel:
 
 
     def step(self):
-        # IP3R dynamics
-        open_prob = self.ip3r_open_rate * np.minimum(self.calcium, 1000)**2 * self.ip3_conc**2 / \
-                    ((np.minimum(self.calcium, 1000) + 0.3)**3 * (self.ip3_conc + 0.2)**2)
-        close_prob = self.ip3r_close_rate * np.minimum(self.calcium, 1000) / (np.minimum(self.calcium, 1000) + 0.3)
+        # IP3R dynamics: per-channel rates (s^-1) times dt give the per-step probability; at most one channel
+        # per cluster opens and one closes in a step (first-order in dt)
+        c = np.minimum(self.calcium, 1000)
+        ip3 = self.ip3_conc
+        a = c + 0.3
+        b = ip3 + 0.2
+        open_rate = self.ip3r_open_rate * (c * c) * (ip3 * ip3) / ((a * a * a) * (b * b))
+        close_rate = self.ip3r_close_rate * c / (c + 0.3)
 
-        opening = (np.random.rand(*self.ip3r_open.shape) < open_prob * (self.ip3r_clusters - self.ip3r_open)).astype(np.int32)
-        closing = (np.random.rand(*self.ip3r_open.shape) < close_prob * self.ip3r_open).astype(np.int32)
+        u_open = np.random.rand(*self.ip3r_open.shape)
+        u_close = np.random.rand(*self.ip3r_open.shape)
+        opening = (u_open < open_rate * self.dt * (self.ip3r_clusters - self.ip3r_open)).astype(np.int32)
+        closing = (u_close < close_rate * self.dt * self.ip3r_open).astype(np.int32)
 
         self.ip3r_open += opening - closing
         self.ip3r_open = np.clip(self.ip3r_open, 0, self.ip3r_clusters)

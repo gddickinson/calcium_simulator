@@ -155,16 +155,16 @@ class MainWindow(QMainWindow):
         layout.addRow("IP3Rs per Cluster:", self.ip3r_per_cluster)
 
         self.ip3r_open_rate = QDoubleSpinBox()
-        self.ip3r_open_rate.setRange(0, 1)
-        self.ip3r_open_rate.setSingleStep(0.01)
+        self.ip3r_open_rate.setRange(0, 1000)
+        self.ip3r_open_rate.setSingleStep(1)
         self.ip3r_open_rate.setValue(self.calcium_model.ip3r_open_rate)
-        layout.addRow("IP3R Open Rate:", self.ip3r_open_rate)
+        layout.addRow("IP3R Open Rate (s^-1):", self.ip3r_open_rate)
 
         self.ip3r_close_rate = QDoubleSpinBox()
-        self.ip3r_close_rate.setRange(0, 100)
-        self.ip3r_close_rate.setSingleStep(1)
+        self.ip3r_close_rate.setRange(0, 100000)
+        self.ip3r_close_rate.setSingleStep(100)
         self.ip3r_close_rate.setValue(self.calcium_model.ip3r_close_rate)
-        layout.addRow("IP3R Close Rate:", self.ip3r_close_rate)
+        layout.addRow("IP3R Close Rate (s^-1):", self.ip3r_close_rate)
 
         dock.setWidget(widget)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
