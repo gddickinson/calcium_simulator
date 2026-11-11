@@ -65,3 +65,11 @@ def test_uncaging_buttons_deliver_ip3(window):
     for _ in range(100):
         m.step()
     assert np.allclose(m.ip3_conc, 0.5, rtol=1e-6)
+
+
+def test_apply_settings_keeps_small_parameters(window):
+    """Spin boxes must have enough decimals: the 0.0002 s^-1 ER leak used to round to 0.00 and be applied as 0."""
+    window.apply_settings()
+    m = window.calcium_model
+    assert m.leak_rate == 0.0002
+    assert m.ip3r_cluster_density == 0.01 and m.serca_k == 0.2 and m.mcu_rate == 0.05
