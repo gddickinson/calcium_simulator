@@ -1,7 +1,9 @@
 import numpy as np
-from scipy.ndimage import convolve, binary_dilation
+from scipy.ndimage import binary_dilation
 from skimage.draw import line
 import json
+
+from model_numerics import LAPLACIAN_KERNEL, diffusion_rate, laplacian9, substeps
 
 class CalciumModel:
     def __init__(self, grid_size=200, dx=0.1, dt=0.001,
@@ -43,10 +45,11 @@ class CalciumModel:
         self.er_calcium_init = er_calcium_init
         self.mito_calcium_init = mito_calcium_init
 
-        # Kernel for 2D diffusion
-        self.kernel = np.array([[0.05, 0.2, 0.05],
-                                [0.2, -1, 0.2],
-                                [0.05, 0.2, 0.05]])
+        # IP3R Ca2+ flux per open channel (s^-1, times the ER-cytosol gradient)
+        self.ip3r_flux_rate = 5.0
+
+        # Kernel for 2D diffusion: the isotropic 9-point Laplacian (times 1/dx^2), see model_numerics.py
+        self.kernel = LAPLACIAN_KERNEL
 
         # Calculate equilibrium calcium concentration
         self.eq_calcium = self.calculate_equilibrium_calcium()
@@ -73,7 +76,8 @@ class CalciumModel:
         self.ip3r_open = np.zeros((self.grid_size, self.grid_size), dtype=np.int32)
         self.ip3r_clusters = np.zeros((self.grid_size, self.grid_size), dtype=np.int32)
         self.ip3_conc = np.zeros((self.grid_size, self.grid_size), dtype=np.float64)
-        self.buffer_bound = self.buffer_total * self.eq_calcium / (self.eq_calcium + self.buffer_kd)
+        self.buffer_bound = np.full((self.grid_size, self.grid_size),
+                                    self.buffer_total * self.eq_calcium / (self.eq_calcium + self.buffer_kd))
 
     def create_cell_structure(self):
         # Create reticulated ER
@@ -121,34 +125,13 @@ class CalciumModel:
         self.ip3r_open += opening - closing
         self.ip3r_open = np.clip(self.ip3r_open, 0, self.ip3r_clusters)
 
-        # Calcium dynamics
-        j_ip3r = 5 * self.ip3r_open * (self.er_calcium - self.calcium) * self.er
-        j_leak = self.leak_rate * (self.er_calcium - self.calcium) * self.er
-        j_serca = self.serca_rate * (self.calcium**2 / (self.calcium**2 + self.serca_k**2)) * self.er
-        j_pmca = self.pmca_rate * self.calcium * self.pm
-        j_mcu = self.mcu_rate * (self.calcium - self.mito_calcium) * self.mitochondria
+        # Calcium, ER, mitochondria and buffer: forward Euler in n sub-steps small enough to be stable
+        n = self.calcium_substeps()
+        for _ in range(n):
+            self._calcium_substep(self.dt / n)
 
-        # Buffer dynamics
-        buffer_free = self.buffer_total - self.buffer_bound
-        j_buffer = self.buffer_kon * (self.calcium * buffer_free - self.buffer_kd * self.buffer_bound)
-
-        dcdt_ip3r = j_ip3r
-        dcdt_leak = j_leak
-        dcdt_serca = -j_serca
-        dcdt_diff_ca = self.D_ca * convolve(self.calcium, self.kernel) / (self.dx**2)
-        dcdt_pmca = -j_pmca
-        dcdt_mcu = -j_mcu
-        dcdt_buffer = -j_buffer
-
-        self.calcium += (dcdt_ip3r + dcdt_leak + dcdt_serca + dcdt_diff_ca + dcdt_pmca + dcdt_mcu + dcdt_buffer) * self.dt
-        self.er_calcium -= (dcdt_ip3r + dcdt_leak + dcdt_serca) * self.dt * self.er
-        self.mito_calcium += j_mcu * self.dt
-
-        self.buffer_bound += j_buffer * self.dt
-
-        # IP3 dynamics
-        dcdt_diff_ip3 = self.D_ip3 * convolve(self.ip3_conc, self.kernel) / (self.dx**2)
-        self.ip3_conc += (dcdt_diff_ip3 - self.ip3_degradation_rate * self.ip3_conc) * self.dt
+        # IP3: diffusion and degradation, sub-stepped for stability (D_ip3 is ten times D_ca)
+        self._ip3_update()
 
         # Ensure non-negative concentrations and prevent overflow
         self.calcium = np.clip(self.calcium, 0, 1000)
@@ -156,6 +139,48 @@ class CalciumModel:
         self.mito_calcium = np.clip(self.mito_calcium, 0, 1000)
         self.ip3_conc = np.clip(self.ip3_conc, 0, 10)
         self.buffer_bound = np.clip(self.buffer_bound, 0, self.buffer_total)
+
+    def calcium_substeps(self):
+        """Sub-steps per dt for the Ca2+ update: covers diffusion, buffer binding (k_on (B_free + Ca) + k_off),
+        IP3R release and the first-order pumps/leaks, from the current state."""
+        b_free = self.buffer_total - self.buffer_bound
+        rate = (diffusion_rate(self.D_ca, self.dx)
+                + self.buffer_kon * (float(np.max(b_free)) + float(np.max(self.calcium)) + self.buffer_kd)
+                + self.ip3r_flux_rate * float(np.max(self.ip3r_open))
+                + self.leak_rate + self.pmca_rate + self.mcu_rate)
+        return substeps(self.dt, rate)
+
+    def ip3_substeps(self):
+        return substeps(self.dt, diffusion_rate(self.D_ip3, self.dx) + self.ip3_degradation_rate)
+
+    def _calcium_substep(self, h):
+        c = self.calcium
+        er_c = self.er_calcium
+        j_ip3r = self.ip3r_flux_rate * self.ip3r_open * (er_c - c) * self.er
+        j_leak = self.leak_rate * (er_c - c) * self.er
+        j_serca = self.serca_rate * (c * c / (c * c + self.serca_k * self.serca_k)) * self.er
+        j_pmca = self.pmca_rate * c * self.pm
+        j_mcu = self.mcu_rate * (c - self.mito_calcium) * self.mitochondria
+        b_free = self.buffer_total - self.buffer_bound
+        j_buffer = self.buffer_kon * (c * b_free - self.buffer_kd * self.buffer_bound)
+        diff = self.D_ca * laplacian9(c, self.dx)
+
+        self.calcium = c + (j_ip3r + j_leak - j_serca + diff - j_pmca - j_mcu - j_buffer) * h
+        self.er_calcium = er_c - (j_ip3r + j_leak - j_serca) * h * self.er
+        self.mito_calcium = self.mito_calcium + j_mcu * h
+        self.buffer_bound = self.buffer_bound + j_buffer * h
+
+    def _ip3_update(self):
+        u = self.ip3_conc
+        k = self.ip3_degradation_rate
+        if u.max() == u.min():  # uniform field: no diffusion, degradation only
+            self.ip3_conc = u - k * u * self.dt
+            return
+        n = self.ip3_substeps()
+        h = self.dt / n
+        for _ in range(n):
+            u = u + (self.D_ip3 * laplacian9(u, self.dx) - k * u) * h
+        self.ip3_conc = u
 
     def add_ip3_global(self, amount, duration):
         """Simulate global uncaging of IP3"""
