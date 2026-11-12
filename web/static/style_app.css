@@ -1,0 +1,32 @@
+/* Calcium Simulator: fluo-style amber / ember accents with an ER teal, plus page styles. */
+:root { --accent:#ffb020; --accent2:#ff4f6d; --accent3:#2fd3c0; --glow:rgba(255,176,32,.15); }
+button, .btn, .seg button.on { color:#170c00; }
+.hero .row { align-items:center; }
+.sim { display:grid; grid-template-columns:330px minmax(0,1fr); gap:18px; align-items:start; margin-top:12px; }
+.sim .controls { background:rgba(12,10,24,.92); border:1px solid var(--line); border-radius:6px; padding:8px 14px 14px; max-height:calc(100vh - 100px); overflow-y:auto; position:sticky; top:80px; }
+.sim .controls details { border-top:1px solid var(--line); padding:4px 0; }
+.sim .controls summary { cursor:pointer; font:12px var(--mono); text-transform:uppercase; letter-spacing:.1em; color:var(--accent3); padding:6px 0; }
+.sim .controls .num { display:grid; grid-template-columns:1fr 110px; gap:8px; align-items:center; margin:4px 0; }
+.sim .controls .num label { margin:0; font-size:12px; line-height:1.3; }
+.sim .controls .num input { padding:5px 6px; font-size:13px; }
+.sim .controls button { margin:6px 6px 0 0; padding:7px 12px; }
+.btns { display:flex; flex-wrap:wrap; }
+.view { min-width:0; }
+.fields { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; max-width:640px; }
+.view .readout { max-width:640px; }
+.stagewrap { position:relative; }
+#field { width:100%; height:auto; aspect-ratio:1; display:block; background:#000; border:1px solid var(--line); border-radius:6px; cursor:crosshair; image-rendering:pixelated; max-width:640px; }
+#field:focus-visible { outline:2px solid var(--accent3); }
+.trace { width:100%; height:180px; display:block; background:rgba(3,4,10,.9); border:1px solid var(--line); border-radius:6px; }
+.legend { display:flex; align-items:center; gap:8px; font:12px var(--mono); color:var(--mute); margin-top:6px; max-width:640px; }
+.legend canvas { flex:1; height:10px; min-width:0; border-radius:2px; }
+.readout { font:12.5px var(--mono); background:rgba(3,5,10,.9); border:1px solid var(--line); border-radius:4px; padding:8px 12px; margin-top:10px; display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:2px 18px; }
+.readout div { display:flex; justify-content:space-between; gap:10px; } .readout b { color:var(--accent); font-weight:600; }
+.chk { display:flex; flex-wrap:wrap; gap:4px 14px; margin:6px 0; } .chk label { display:flex; gap:6px; align-items:center; margin:0; font-size:13px; }
+.keys { font:12px var(--mono); color:var(--mute); }
+.eqs { overflow-x:auto; }
+.ok-big { color:var(--good); font:600 20px var(--mono); } .bad-big { color:var(--bad); font:600 20px var(--mono); }
+.shot { width:100%; border:1px solid var(--line); border-radius:6px; }
+@media (max-width:900px) {
+  .sim { grid-template-columns:1fr; } .sim .controls { position:static; max-height:none; } .view { order:-1; }
+}

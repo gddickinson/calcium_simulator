@@ -98,7 +98,11 @@ calcium_simulator/
   gui_docks.py         # Parameter docks (mixin used by MainWindow)
   __init__.py          # Package docstring and version
   configs/             # Cell states: default_state.json, high_calcium_state.json, low_calcium_state.json
-  tests/               # pytest: model, physics regression and GUI (offscreen) tests
+  param_specs.py       # Parameter labels, units, ranges (GUI and web) and the cell-state list
+  tests/               # pytest: model, physics regression, GUI (offscreen) and web tests
+  web/                 # FastAPI app + static front end (JS engine ca_engine.js), see INTERFACE.md
+  scripts/             # build_static.py, screenshots.py, make_ca_fixture.py
+  run_web.py           # local web app on 127.0.0.1:8205
 ```
 
 ### Key Classes
@@ -135,6 +139,36 @@ python main.py
 4. Toggle overlay checkboxes to visualize ER network, mitochondria, plasma membrane, and IP3R states
 5. Use the **Cell States** menu to load predefined states or save your current configuration
 6. Use the **File** menu to save/load parameter sets as JSON files
+
+## Web interface and static site
+
+The simulator also runs in the browser: `web/static/ca_engine.js` is a line-by-line JavaScript port of
+`CalciumModel` (including numpy's random number generator), so a run with the same seed gives the same cell, the
+same IP3R openings and the same concentrations as Python (`web/static/ca_engine.test.mjs`, checked against
+`tests/fixtures/ca_reference.json`). Published to GitHub Pages by `.github/workflows/pages.yml` on push to `main`:
+https://gddickinson.github.io/calcium_simulator/
+
+- **Simulator**: dF/F0, cytosolic, ER and mitochondrial [Ca2+] and IP3 as live images with the desktop overlays,
+  global or local IP3 uncaging, a dF/F0 + [Ca2+] trace at a probe point (CSV download), cell states from `configs/`,
+  every parameter with its unit. The dF/F0 readout assumes an equilibrium single-wavelength indicator (Kd and
+  Fmax/Fmin are page settings, not part of the Python model).
+- **Model**: equations, parameter table with units, numerics. **JS = Python**: repeats a seeded Python run in the browser.
+
+![Simulator](docs/img/sim.png)
+
+| Home | Model | JS = Python check |
+|---|---|---|
+| ![Home](docs/img/home.png) | ![Model](docs/img/model.png) | ![Check](docs/img/check.png) |
+
+### Run the web app
+
+```bash
+pip install -r requirements-web.txt
+python run_web.py                    # http://127.0.0.1:8205
+python -m pytest -q tests            # model, physics, GUI (offscreen) and web tests (node needed for the JS test)
+python scripts/build_static.py       # static site in site/
+python scripts/make_ca_fixture.py    # after changing the model: refresh the JS reference fixture
+```
 
 ## Customization
 

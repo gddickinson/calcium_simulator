@@ -40,3 +40,11 @@ def spec_dict(specs=PARAM_SPECS):
         d["group" if specs is PARAM_SPECS else "default"] = values[6]
         out[key] = d
     return out
+
+
+# Predefined cell states (Cell States menu): name -> file in configs/
+CELL_STATES = {
+    "Default": "default_state.json",
+    "High Calcium": "high_calcium_state.json",
+    "Low Calcium": "low_calcium_state.json",
+}

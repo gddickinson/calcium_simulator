@@ -11,6 +11,7 @@ import os
 import json
 
 from gui_docks import ParameterDocksMixin
+from param_specs import CELL_STATES
 
 
 class MainWindow(ParameterDocksMixin, QMainWindow):
@@ -21,11 +22,7 @@ class MainWindow(ParameterDocksMixin, QMainWindow):
         self.initUI()
 
         configs_dir = os.path.join(self._base_dir, "configs")
-        self.cell_states = {
-            "Default": os.path.join(configs_dir, "default_state.json"),
-            "High Calcium": os.path.join(configs_dir, "high_calcium_state.json"),
-            "Low Calcium": os.path.join(configs_dir, "low_calcium_state.json"),
-        }
+        self.cell_states = {name: os.path.join(configs_dir, f) for name, f in CELL_STATES.items()}
         self.create_default_states()
         self.create_cell_state_menu()
 

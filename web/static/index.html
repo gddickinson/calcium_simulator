@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calcium Simulator</title>
+<meta name="description" content="Tool for modelling and visualising intracellular Ca2+ signals: 2D reaction-diffusion with stochastic IP3 receptor clusters, running in your browser.">
+<link rel="icon" href="static/icon.svg">
+<link rel="stylesheet" href="static/style.css">
+<link rel="stylesheet" href="static/style_app.css">
+</head>
+<body>
+<canvas id="bg" aria-hidden="true"></canvas>
+<header class="top">
+  <a class="brand" href="#/"><span class="mark"></span>Calcium Simulator</a>
+  <nav class="groups">
+    <a href="#/sim" data-nav="sim">Simulator</a>
+    <a href="#/model" data-nav="model">Model</a>
+    <a href="#/check" data-nav="check">JS = Python</a>
+    <a href="#/about" data-nav="about">About</a>
+  </nav>
+  <div class="right"><a class="small mute" href="https://github.com/gddickinson/calcium_simulator" target="_blank" rel="noopener">GitHub</a></div>
+</header>
+<main id="app" tabindex="-1"></main>
+<footer class="foot">Calcium Simulator · <a href="https://github.com/gddickinson/calcium_simulator">source on GitHub</a> · <span id="mode"></span></footer>
+<script type="module" src="static/main.js"></script>
+</body>
+</html>
