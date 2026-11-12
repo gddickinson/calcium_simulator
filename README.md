@@ -30,9 +30,20 @@ An interactive 2D intracellular calcium dynamics simulator built with PyQt5 and 
 - Start/stop simulation controls
 
 ### Predefined Cell States
-- **Default**: Standard resting cell parameters
-- **High Calcium**: Elevated cytosolic calcium conditions
-- **Low Calcium**: Reduced calcium levels
+- **Blips (default)**: the default parameters; IP3 evokes single-channel blips (one channel per cluster open at a time)
+- **Puffs**: defaults except 30 IP3Rs per cluster (25-35 IP3Rs per puff site, Shuai, Rose & Parker 2006,
+  [doi:10.1529/biophysj.106.088880](https://doi.org/10.1529/biophysj.106.088880); "two or three tens" of channels,
+  Swillens et al. 1999, [doi:10.1073/pnas.96.24.13750](https://doi.org/10.1073/pnas.96.24.13750)), IP3R close rate
+  83.3 s^-1 (12 ms trigger opening, Shuai et al. 2006) and D_IP3 = 283 um^2/s (Allbritton, Meyer & Stryer 1992,
+  [doi:10.1126/science.1465619](https://doi.org/10.1126/science.1465619), who measured D_Ca 13-65 um^2/s, bracketing the
+  default 20). Several channels open together, as in puffs (~6 active IP3Rs per puff, Smith & Parker 2009,
+  [doi:10.1073/pnas.0810799106](https://doi.org/10.1073/pnas.0810799106)).
+- **High Calcium** / **Low Calcium**: initial ER [Ca2+] 1000 / 250 uM (resting cytosolic Ca2+ 200 / 76 nM)
+
+`tests/test_presets.py` checks the event class: Blips never open more than one channel per cluster and stay below
+0.5 um^2; Puffs open >= 3 channels together over 1-20 um^2. There is no Waves state: the IP3R opening rate
+c^2/(c + 0.3)^3 rises at most ~2.6-fold with Ca2+, too little for one cluster to recruit the next with literature
+parameters, so waves would need a different gating model. DOIs checked against Crossref on 2026-11-11.
 - Save and load custom parameter sets through the GUI
 
 ## Mathematical Model
@@ -155,6 +166,10 @@ https://gddickinson.github.io/calcium_simulator/
 - **Model**: equations, parameter table with units, numerics. **JS = Python**: repeats a seeded Python run in the browser.
 
 ![Simulator](docs/img/sim.png)
+
+Puffs state (several channels per cluster open together):
+
+![Puffs](docs/img/sim_puffs.png)
 
 | Home | Model | JS = Python check |
 |---|---|---|

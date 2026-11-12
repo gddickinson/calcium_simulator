@@ -66,6 +66,9 @@ def test_js_fixture_is_current():
     saved = json.loads((ROOT / "tests" / "fixtures" / "ca_reference.json").read_text())
     now = json.loads(json.dumps(fixture()))
     assert saved["geometry"] == now["geometry"]
+    for name, ev in saved["events"].items():
+        assert ev["max_open"] == now["events"][name]["max_open"], name
+        assert abs(ev["max_area_um2"] - now["events"][name]["max_area_um2"]) < 1e-9, name
     for a, b in zip(saved["cases"], now["cases"]):
         for key in a:
             if isinstance(a[key], list) and a[key] and isinstance(a[key][0], float):
@@ -78,7 +81,7 @@ def test_js_fixture_is_current():
 
 def test_states_are_the_config_files():
     states = client.get("/api/states").json()
-    assert [s["name"] for s in states] == ["Default", "High Calcium", "Low Calcium"]
+    assert [s["name"] for s in states] == ["Blips (default)", "Puffs", "High Calcium", "Low Calcium"]
     for s in states:
         assert s["params"] == json.loads((ROOT / s["file"]).read_text())
 

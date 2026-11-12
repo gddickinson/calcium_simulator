@@ -29,6 +29,6 @@ route('home', async () => {
     </div>
     <h2>Cell states</h2>
     <div class="grid">${states.map(s => `<a class="card" href="#/sim?state=${esc(s.slug)}"><b>${esc(s.name)}</b>
-      <small>${esc(s.file)}</small><span>Initial ER [Ca²⁺] ${s.params.er_calcium_init} µM; all other parameters at their
-      defaults.</span></a>`).join('')}</div>`;
+      <small>${esc(s.file)}</small><span>${esc(s.description)}</span></a>`).join('')}</div>
+    <p class="small mute">No “Waves” state: the model's IP3R opening rate rises at most ~2.6-fold with Ca²⁺, too little for one cluster to recruit the next with literature parameters (see <a href="#/model">Model</a>).</p>`;
 });

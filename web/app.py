@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from calcium_model import CalciumModel
 from model_numerics import equilibrium_calcium
-from param_specs import CELL_STATES, PARAM_SPECS, UNCAGING_SPECS, spec_dict
+from param_specs import CELL_STATE_INFO, CELL_STATES, PARAM_SPECS, UNCAGING_SPECS, spec_dict
 from web.reference import CASES, summarise
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -35,7 +35,7 @@ def cell_states():
     for name, filename in CELL_STATES.items():
         params = json.loads((ROOT / "configs" / filename).read_text())
         out.append({"name": name, "slug": filename.removesuffix("_state.json"), "file": f"configs/{filename}",
-                     "params": params})
+                     "params": params, **CELL_STATE_INFO[name]})
     return out
 
 
@@ -68,7 +68,7 @@ def specs():
 
 @app.get("/api/states")
 def states():
-    """The predefined cell states of the Cell States menu (configs/*.json)."""
+    """The predefined cell states of the Cell States menu (configs/*.json) with descriptions and DOI references."""
     return cell_states()
 
 

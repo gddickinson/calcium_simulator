@@ -89,4 +89,23 @@ ok('dF/F0 of an equilibrium indicator: 0 at rest, (Rf - 1) c/(c + Kd) scaling, s
   assert.ok(dfOverF(0.5, 0.1, 0.35, 100) > dfOverF(0.3, 0.1, 0.35, 100));
 });
 
+// Event classes of the cell states (tests/test_presets.py): same seeded run as web/reference.event_stats
+for (const [name, ev] of Object.entries(F.events)) {
+  ok(`"${name}" state: same event statistics as Python, and the expected event class`, () => {
+    const m = new CalciumModel(ev.params, 0);
+    m.addIp3Global(0.5, 0.05);
+    let maxOpen = 0, maxArea = 0;
+    for (let s = 0; s < 400; s++) {
+      m.step();
+      let o = 0, a = 0;
+      for (let k = 0; k < m.calcium.length; k++) { if (m.ip3r_open[k] > o) o = m.ip3r_open[k]; if (m.calcium[k] > 2 * m.eq_calcium) a++; }
+      maxOpen = Math.max(maxOpen, o); maxArea = Math.max(maxArea, a * m.dx * m.dx);
+    }
+    assert.equal(maxOpen, ev.max_open); assert.ok(Math.abs(maxArea - ev.max_area_um2) < 1e-9);
+    if (name.startsWith('Blips')) assert.ok(maxOpen === 1 && maxArea < 0.5);
+    else assert.ok(maxOpen >= 3 && maxArea >= 1 && maxArea < 20);
+    console.log(`      max channels open in a cluster ${maxOpen}, max area above 2x rest ${maxArea.toFixed(2)} um^2`);
+  });
+}
+
 console.log(`${n} tests passed`);

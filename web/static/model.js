@@ -5,7 +5,7 @@ import { route, app, api, esc } from './core.js';
 const unit = u => esc(u).replace(/uM/g, 'µM').replace(/um\^2/g, 'µm²').replace(/\^-1/g, '⁻¹');
 
 route('model', async () => {
-  const S = await api('/specs'), D = S.defaults;
+  const [S, states] = await Promise.all([api('/specs'), api('/states')]), D = S.defaults;
   app().innerHTML = `
     <h1 class="glow">The model</h1>
     <p class="lead">A 2D square of cytosol (${D.grid_size} × ${D.grid_size} grid points, dx = ${D.dx} µm) containing a random
@@ -42,6 +42,16 @@ k_close = ip3r_close_rate × c / (c + 0.3)            (c, [IP3] in µM)</pre>
       <tr><td>Grid spacing <span class="mute mono">dx</span></td><td class="mono">${D.dx}</td><td>µm</td><td></td></tr>
       <tr><td>Initial mitochondrial [Ca²⁺] <span class="mute mono">mito_calcium_init</span></td><td class="mono">${D.mito_calcium_init}</td><td>µM</td><td></td></tr>
     </table></div>
+    <h2>Cell states and sources</h2>
+    ${states.map(st => `<h3>${esc(st.name)}</h3><p>${esc(st.description)}</p>${st.references.length ? `<ul>${st.references.map(r =>
+      `<li>${esc(r.cite)}, <a href="https://doi.org/${esc(r.doi)}" target="_blank" rel="noopener">doi:${esc(r.doi)}</a></li>`).join('')}</ul>` : ''}`).join('')}
+    <p>Tested event classes (seed 0, 0.5 µM IP3 over 50 ms, 400 ms): Blips never have more than one channel of a cluster
+      open and raise [Ca²⁺] above twice rest over &lt; 0.5 µm²; Puffs open ≥ 3 channels together (7 in the test) over 1–20 µm²
+      (about 3 µm²).</p>
+    <p><b>No Waves state.</b> The opening rate c²/(c + 0.3)³ peaks at c = 0.6 µM only ~2.6-fold above its resting value,
+      so Ca²⁺ from one cluster barely raises the opening rate of the next: with literature cluster sizes, open times,
+      diffusion coefficients, ER load and IP3 levels no propagating wave appears. Waves would need a different IP3R gating
+      model, which would change the model rather than its parameters.</p>
     <h2>Numerics</h2>
     <p>Diffusion uses the isotropic 9-point Laplacian (1/6dx²)·[[1,4,1],[4,−20,4],[1,4,1]] with zero-flux (mirror)
       boundaries. Each dt is split into n forward-Euler sub-steps with n = ⌈dt × (sum of first-order loss rates)⌉, where

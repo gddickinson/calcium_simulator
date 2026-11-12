@@ -8,15 +8,15 @@ calcium_simulator/
   main.py                  # Entry point: creates QApplication, CalciumModel, MainWindow
   calcium_model.py         # CalciumModel: reaction-diffusion solver, cell structure, IP3R gating, uncaging
   model_numerics.py        # laplacian9, diffusion_rate, substeps, equilibrium_calcium (SERCA = leak)
-  param_specs.py           # PARAM_SPECS / UNCAGING_SPECS (label, unit, range, decimals), CELL_STATES (Qt-free)
+  param_specs.py           # PARAM_SPECS / UNCAGING_SPECS, CELL_STATES + CELL_STATE_INFO (descriptions, DOIs) (Qt-free)
   gui.py                   # MainWindow: tabbed image views, menus, simulation timer, apply/load
   gui_docks.py             # ParameterDocksMixin: parameter/uncaging/overlay docks, sync_widgets_from_model
-  configs/                 # Cell states: default / high_calcium / low_calcium _state.json
+  configs/                 # Cell states: default (Blips) / puffs / high_calcium / low_calcium _state.json
   run_web.py               # Starts the web app (uvicorn) on 127.0.0.1:8205
   requirements-web.txt     # Pinned web/test dependencies
   web/
     app.py                 # FastAPI: /api/info, /api/specs, /api/states, /api/check; STATIC_ENDPOINTS
-    reference.py           # Seeded Python reference runs (CASES, summarise, geometry, fixture)
+    reference.py           # Seeded Python reference runs (CASES, summarise, geometry, event_stats, fixture)
     static/                # Front end (plain ES modules, no build step)
       index.html, style.css (kit theme), style_app.css, core.js (kit router/helpers), main.js, static_api.js, bg.js
       np_random.js         # NumpyRandom: MT19937 + numpy legacy rand/randint/choice/poisson
@@ -34,6 +34,7 @@ calcium_simulator/
     test_calcium_model.py  # Smoke tests for CalciumModel
     test_physics.py        # Units/stability/steady-state/gating/uncaging regression tests
     test_gui.py            # Offscreen Qt: widgets drive the model, loaded states sync
+    test_presets.py        # Blips / Puffs states produce their event class (channels open at once, spread)
     test_web.py            # API, static build, fixture current, node engine test
   .github/workflows/pages.yml  # Build + publish static site on push to main
 ```

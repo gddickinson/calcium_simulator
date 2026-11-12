@@ -4,9 +4,14 @@ CASES are seeded runs (np.random.seed before building the model, as the desktop 
 replays one and summarise() records the fields. scripts/make_ca_fixture.py writes them to
 tests/fixtures/ca_reference.json for the node test, and the /api/check endpoint serves one for the in-browser check.
 """
+import json
+from pathlib import Path
+
 import numpy as np
 
 from calcium_model import CalciumModel
+
+CONFIGS = Path(__file__).resolve().parent.parent / "configs"
 
 # Each case: seed, model parameters, uncaging calls made before stepping, number of steps.
 CASES = [
@@ -17,6 +22,10 @@ CASES = [
      "uncage": [["global", 1.0, 0.002]], "steps": 30},
 ]
 GEOMETRY_SEED = 0  # default 200 x 200 cell
+
+# Event-class check of the cell states: global IP3 0.5 uM over 50 ms, then EVENT_STEPS steps of 1 ms, seed 0.
+EVENT_STEPS = 400
+EVENT_UNCAGING = (0.5, 0.05)
 
 
 def build(case):
@@ -68,5 +77,29 @@ def geometry():
             "calcium_substeps": m.calcium_substeps(), "ip3_substeps": m.ip3_substeps()}
 
 
+def event_stats(params, seed=0, steps=EVENT_STEPS):
+    """Largest number of channels open at once in one cluster, and the largest area (um^2) where cytosolic [Ca2+]
+    exceeds twice its resting level, over `steps` steps after a global IP3 uncaging."""
+    np.random.seed(seed)
+    m = CalciumModel(**params)
+    m.add_ip3_global(*EVENT_UNCAGING)
+    max_open, max_area = 0, 0.0
+    for _ in range(steps):
+        m.step()
+        max_open = max(max_open, int(m.ip3r_open.max()))
+        max_area = max(max_area, float((m.calcium > 2 * m.eq_calcium).sum()) * m.dx * m.dx)
+    return {"max_open": max_open, "max_area_um2": max_area}
+
+
+def preset_events():
+    """event_stats for the Blips and Puffs cell states (configs/)."""
+    from param_specs import CELL_STATES
+    out = {}
+    for name in ("Blips (default)", "Puffs"):
+        params = json.loads((CONFIGS / CELL_STATES[name]).read_text())
+        out[name] = {"params": params, **event_stats(params)}
+    return out
+
+
 def fixture():
-    return {"geometry": geometry(), "cases": [summarise(c) for c in CASES]}
+    return {"geometry": geometry(), "cases": [summarise(c) for c in CASES], "events": preset_events()}

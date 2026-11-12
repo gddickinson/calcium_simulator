@@ -92,7 +92,7 @@ export function drawTrace(canvas, trace) {
     const Y = v => top + half - 6 - (v - lo) / (hi - lo) * (half - 12);
     ctx.strokeStyle = '#212c4c'; ctx.strokeRect(left, top, W - left - right, half);
     ctx.fillStyle = '#94a3c6';
-    const fmt = v => (Math.abs(v) < 1e-6 ? '0' : v.toPrecision(3));
+    const fmt = v => (Math.abs(v) < 1e-3 * (hi - lo) ? '0' : v.toPrecision(3));
     ctx.fillText(fmt(hi), 4, top + 10); ctx.fillText(fmt(lo), 4, top + half - 2);
     ctx.fillStyle = color; ctx.fillText(name, left + 6, top + 13);
     ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.beginPath();

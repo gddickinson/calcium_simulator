@@ -302,7 +302,7 @@ class MainWindow(ParameterDocksMixin, QMainWindow):
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             if not os.path.exists(filename):
                 # Create a default state file
-                if state_name == "Default":
+                if state_name == "Blips (default)":
                     self.calcium_model.save_parameters(filename)
                 elif state_name == "High Calcium":
                     self.calcium_model.er_calcium_init *= 2

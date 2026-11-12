@@ -22,3 +22,16 @@ No linescan (the Python has none). Nothing ran on the Mac mini.
 
 Open questions for George: IP3R close rate 10000 s^-1 (sub-ms openings) and D_Ca 20 um^2/s with an extra
 100 uM immobile buffer are the code's values, kept; with them the default cell shows single-channel blips, no waves.
+
+## 2026-11-11 (later) -- Literature presets (George: "fix any other problems")
+
+The default cell only showed single-channel blips. Defaults kept; cell states now "Blips (default)", "Puffs",
+"High Calcium", "Low Calcium". Puffs: 30 IP3Rs/cluster (Shuai et al. 2006 doi:10.1529/biophysj.106.088880; Swillens
+et al. 1999 doi:10.1073/pnas.96.24.13750), close rate 83.3 s^-1 = 12 ms open time (Shuai 2006), D_IP3 283 um^2/s
+(Allbritton et al. 1992 doi:10.1126/science.1465619); Smith & Parker 2009 doi:10.1073/pnas.0810799106 for ~6 channels
+per puff. DOIs checked on Crossref, numbers taken from the PubMed abstracts. Several DOIs recalled from memory were
+wrong and were replaced by Crossref search results.
+Tests (tests/test_presets.py + node): Blips max 1 channel open per cluster, < 0.5 um^2 above 2x rest; Puffs >= 3
+open together (7), 1-20 um^2 (3.1). JS reproduces Python's event statistics exactly.
+No Waves state: gating rate c^2/(c+0.3)^3 rises <= 2.6x with Ca2+; tried D_Ca 65, ER 1000 uM, 3x cluster density,
+20 uM buffer with IP3 2 uM: still local events only (max ~18 um^2). Waves need a different gating model (George).

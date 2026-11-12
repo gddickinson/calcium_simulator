@@ -9,6 +9,13 @@ import { renderPanel } from './sim_panel.js';
 
 const TRACE_MAX = 4000;
 
+// Description and DOI links of a cell state (param_specs.CELL_STATE_INFO)
+export function stateInfo(s) {
+  if (!s) return '';
+  const refs = s.references.map(r => `<a href="https://doi.org/${esc(r.doi)}" target="_blank" rel="noopener">${esc(r.cite)}</a>`).join('; ');
+  return `<span class="small" style="display:block;margin-top:6px">${esc(s.description)}${refs ? ` Sources: ${refs}.` : ''}</span>`;
+}
+
 route('sim', async (_args, query) => {
   const [specs, states] = await Promise.all([api('/specs'), api('/states')]);
   const first = states.find(s => s.slug === query.state) || states[0];
@@ -70,7 +77,8 @@ route('sim', async (_args, query) => {
     const nCl = m.ip3r_clusters.reduce((a, v) => a + (v > 0), 0), nCh = m.ip3r_clusters.reduce((a, v) => a + v, 0);
     document.getElementById('note').innerHTML = `${esc(states.find(s => s.slug === st.preset)?.name || 'Custom')} cell, seed ${st.seed}:
       ${nCl} IP3R clusters (${nCh} channels) on the ER, resting [Ca2+] ${(m.eq_calcium * 1000).toFixed(0)} nM.
-      ${startup ? `Started with a global IP3 uncaging (${st.uncage.amount} µM over ${st.uncage.duration} s, the desktop defaults).` : 'No IP3 yet: uncage some to open channels.'}`;
+      ${startup ? `Started with a global IP3 uncaging (${st.uncage.amount} µM over ${st.uncage.duration} s, the desktop defaults).` : 'No IP3 yet: uncage some to open channels.'}
+      ${stateInfo(states.find(s => s.slug === st.preset))}`;
     dirty = true;
   }
 
